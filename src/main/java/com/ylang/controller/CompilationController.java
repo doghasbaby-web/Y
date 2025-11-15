@@ -71,6 +71,38 @@ public class CompilationController {
     }
 
     /**
+     * Compile Y language to Python
+     */
+    @PostMapping("/python")
+    public ResponseEntity<CompilationResponse> compileToPython(@RequestBody String sourceCode) {
+        log.info("Received Python compilation request");
+
+        CompilationResponse response = compilationService.compileToPython(sourceCode);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    /**
+     * Compile Y language to JavaScript
+     */
+    @PostMapping("/javascript")
+    public ResponseEntity<CompilationResponse> compileToJavaScript(@RequestBody String sourceCode) {
+        log.info("Received JavaScript compilation request");
+
+        CompilationResponse response = compilationService.compileToJavaScript(sourceCode);
+
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    /**
      * Health check endpoint
      */
     @GetMapping("/health")

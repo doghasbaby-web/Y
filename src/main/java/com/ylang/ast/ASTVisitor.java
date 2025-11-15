@@ -4,6 +4,7 @@ package com.ylang.ast;
  * Visitor interface for traversing AST
  */
 public interface ASTVisitor<T> {
+    // Existing methods
     T visitProgram(ProgramNode node);
     T visitFunctionDeclaration(FunctionDeclarationNode node);
     T visitStructDeclaration(StructDeclarationNode node);
@@ -20,4 +21,15 @@ public interface ASTVisitor<T> {
     T visitImplementBlock(ImplementBlockNode node);
     T visitTryCatch(TryCatchNode node);
     T visitAssignment(AssignmentNode node);
+
+    // New methods for additional AST nodes
+    T visitEnumDeclaration(EnumDeclarationNode node);
+    T visitTraitDeclaration(TraitDeclarationNode node);
+    T visitMatch(MatchNode node);
+    T visitModule(ModuleNode node);
+    T visitImport(ImportNode node);
+    T visitExport(ExportNode node);
+    T visitTypeAlias(TypeAliasNode node);
+    T visitClosure(ClosureNode node);
+    T visitClassDeclaration(ClassDeclarationNode node);
 }

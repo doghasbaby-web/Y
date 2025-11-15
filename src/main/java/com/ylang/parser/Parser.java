@@ -57,8 +57,11 @@ public class Parser {
             return parseReturnStatement();
         } else if (current.getType() == TokenType.TRY) {
             return parseTryCatch();
-        } else if (current.getType() == TokenType.IDENTIFIER) {
-            // Could be assignment or function call
+        } else if (current.getType() == TokenType.IDENTIFIER ||
+                   current.getType() == TokenType.NUMBER_LITERAL ||
+                   current.getType() == TokenType.STRING_LITERAL ||
+                   current.getType() == TokenType.BOOLEAN_LITERAL) {
+            // Could be assignment, function call, or literal expression
             return parseExpressionStatement();
         }
 

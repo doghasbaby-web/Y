@@ -39,61 +39,30 @@ public class CompilationController {
     }
 
     /**
-     * Compile Y language to TypeScript
+     * Compile Y language to a specific target language using path variable
+     * Supported languages: typescript, rust, python, javascript
      */
-    @PostMapping("/typescript")
-    public ResponseEntity<CompilationResponse> compileToTypeScript(@RequestBody String sourceCode) {
-        log.info("Received TypeScript compilation request");
+    @PostMapping("/{language}")
+    public ResponseEntity<CompilationResponse> compileToLanguage(
+            @PathVariable String language,
+            @RequestBody String sourceCode) {
+        log.info("Received {} compilation request", language);
 
-        CompilationResponse response = compilationService.compileToTypeScript(sourceCode);
+        CompilationRequest request = new CompilationRequest();
+        request.setSourceCode(sourceCode);
 
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        try {
+            CompilationRequest.TargetLanguage targetLanguage =
+                CompilationRequest.TargetLanguage.valueOf(language.toUpperCase());
+            request.setTargetLanguage(targetLanguage);
+        } catch (IllegalArgumentException e) {
+            CompilationResponse errorResponse = new CompilationResponse();
+            errorResponse.setSuccess(false);
+            errorResponse.setError("Unsupported language: " + language + ". Supported: typescript, rust, python, javascript");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
-    }
 
-    /**
-     * Compile Y language to Rust
-     */
-    @PostMapping("/rust")
-    public ResponseEntity<CompilationResponse> compileToRust(@RequestBody String sourceCode) {
-        log.info("Received Rust compilation request");
-
-        CompilationResponse response = compilationService.compileToRust(sourceCode);
-
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-    }
-
-    /**
-     * Compile Y language to Python
-     */
-    @PostMapping("/python")
-    public ResponseEntity<CompilationResponse> compileToPython(@RequestBody String sourceCode) {
-        log.info("Received Python compilation request");
-
-        CompilationResponse response = compilationService.compileToPython(sourceCode);
-
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }
-    }
-
-    /**
-     * Compile Y language to JavaScript
-     */
-    @PostMapping("/javascript")
-    public ResponseEntity<CompilationResponse> compileToJavaScript(@RequestBody String sourceCode) {
-        log.info("Received JavaScript compilation request");
-
-        CompilationResponse response = compilationService.compileToJavaScript(sourceCode);
+        CompilationResponse response = compilationService.compile(request);
 
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);

@@ -10,8 +10,9 @@ import java.util.List;
 
 /**
  * Parser for Y Language - converts tokens into AST
+ * Note: This class is NOT a singleton. Create a new instance for each parsing operation
+ * to ensure thread safety.
  */
-@Component
 public class Parser {
 
     private List<Token> tokens;
@@ -659,7 +660,7 @@ public class Parser {
         if (peek().getType() == type) {
             return advance();
         }
-        throw new RuntimeException("Expected " + type + " but got " + peek().getType() + " at " + peek());
+        throw new ParseException("Unexpected token", peek(), type);
     }
 
     private boolean isAtEnd() {

@@ -9,6 +9,7 @@ import com.ylang.model.CompilationResponse;
 import com.ylang.parser.Parser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,15 +23,12 @@ import java.util.List;
 public class CompilationService {
 
     private final Lexer lexer;
-    private final Parser parser;
-    private final TypeScriptCompiler typeScriptCompiler;
-    private final RustCompiler rustCompiler;
-    private final PythonCompiler pythonCompiler;
-    private final JavaScriptCompiler javaScriptCompiler;
 
     /**
      * Compile Y language source code to target language
+     * Results are cached based on source code and target language
      */
+    @Cacheable(value = "compilations", key = "#request.sourceCode + '_' + #request.targetLanguage")
     public CompilationResponse compile(CompilationRequest request) {
         try {
             log.info("Compiling Y language to {}", request.getTargetLanguage());
@@ -41,23 +39,26 @@ public class CompilationService {
             log.debug("Tokens: {}", tokens.size());
 
             // Step 2: Parse into AST
+            // Create new parser instance for thread safety
+            Parser parser = new Parser();
             ProgramNode ast = parser.parse(tokens);
             log.debug("AST parsed successfully");
 
             // Step 3: Compile to target language
+            // Create new compiler instance for thread safety
             String compiledCode;
             switch (request.getTargetLanguage()) {
                 case TYPESCRIPT:
-                    compiledCode = typeScriptCompiler.compile(ast);
+                    compiledCode = new TypeScriptCompiler().compile(ast);
                     break;
                 case RUST:
-                    compiledCode = rustCompiler.compile(ast);
+                    compiledCode = new RustCompiler().compile(ast);
                     break;
                 case PYTHON:
-                    compiledCode = pythonCompiler.compile(ast);
+                    compiledCode = new PythonCompiler().compile(ast);
                     break;
                 case JAVASCRIPT:
-                    compiledCode = javaScriptCompiler.compile(ast);
+                    compiledCode = new JavaScriptCompiler().compile(ast);
                     break;
                 case JAVA:
                 case C:
@@ -75,45 +76,5 @@ public class CompilationService {
             log.error("Compilation failed", e);
             return CompilationResponse.error(e.getMessage(), request.getTargetLanguage());
         }
-    }
-
-    /**
-     * Compile Y language to TypeScript
-     */
-    public CompilationResponse compileToTypeScript(String sourceCode) {
-        CompilationRequest request = new CompilationRequest();
-        request.setSourceCode(sourceCode);
-        request.setTargetLanguage(CompilationRequest.TargetLanguage.TYPESCRIPT);
-        return compile(request);
-    }
-
-    /**
-     * Compile Y language to Rust
-     */
-    public CompilationResponse compileToRust(String sourceCode) {
-        CompilationRequest request = new CompilationRequest();
-        request.setSourceCode(sourceCode);
-        request.setTargetLanguage(CompilationRequest.TargetLanguage.RUST);
-        return compile(request);
-    }
-
-    /**
-     * Compile Y language to Python
-     */
-    public CompilationResponse compileToPython(String sourceCode) {
-        CompilationRequest request = new CompilationRequest();
-        request.setSourceCode(sourceCode);
-        request.setTargetLanguage(CompilationRequest.TargetLanguage.PYTHON);
-        return compile(request);
-    }
-
-    /**
-     * Compile Y language to JavaScript
-     */
-    public CompilationResponse compileToJavaScript(String sourceCode) {
-        CompilationRequest request = new CompilationRequest();
-        request.setSourceCode(sourceCode);
-        request.setTargetLanguage(CompilationRequest.TargetLanguage.JAVASCRIPT);
-        return compile(request);
     }
 }

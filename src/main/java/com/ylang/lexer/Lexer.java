@@ -92,10 +92,26 @@ public class Lexer {
 
     private static final Pattern YUMMY_PATTERN = Pattern.compile("\\(Yummy:([^)]+)\\)");
 
+    // Validation constants
+    private static final int MAX_SOURCE_LENGTH = 1_000_000; // 1MB
+    private static final int MAX_NESTING_DEPTH = 100;
+    private static final int MAX_LINE_LENGTH = 10_000;
+
     /**
      * Tokenize Y language source code
      */
     public List<Token> tokenize(String source) {
+        // Input validation
+        if (source == null) {
+            throw new IllegalArgumentException("Source code cannot be null");
+        }
+
+        if (source.length() > MAX_SOURCE_LENGTH) {
+            throw new IllegalArgumentException(
+                "Source code too large: " + source.length() + " characters (max: " + MAX_SOURCE_LENGTH + ")"
+            );
+        }
+
         List<Token> tokens = new ArrayList<>();
         String[] lines = source.split("\n");
 
@@ -104,6 +120,13 @@ public class Lexer {
 
         for (int lineNum = 0; lineNum < lines.length; lineNum++) {
             String line = lines[lineNum];
+
+            // Validate line length
+            if (line.length() > MAX_LINE_LENGTH) {
+                throw new IllegalArgumentException(
+                    "Line " + (lineNum + 1) + " is too long: " + line.length() + " characters (max: " + MAX_LINE_LENGTH + ")"
+                );
+            }
 
             // Skip empty lines
             if (line.trim().isEmpty()) {
@@ -118,6 +141,12 @@ public class Lexer {
 
             // Handle indentation changes
             if (indent > indentStack.peek()) {
+                // Validate nesting depth
+                if (indentStack.size() >= MAX_NESTING_DEPTH) {
+                    throw new IllegalArgumentException(
+                        "Nesting too deep at line " + (lineNum + 1) + " (max depth: " + MAX_NESTING_DEPTH + ")"
+                    );
+                }
                 tokens.add(new Token(TokenType.INDENT, "", lineNum + 1, indent));
                 indentStack.push(indent);
             } else if (indent < indentStack.peek()) {

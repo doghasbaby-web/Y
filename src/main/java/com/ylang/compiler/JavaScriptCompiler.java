@@ -5,8 +5,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Compiler from Y Language to JavaScript (ES6+)
+ * Note: This class is NOT a singleton. Create a new instance for each compilation
+ * to ensure thread safety.
  */
-@Component
 public class JavaScriptCompiler implements ASTVisitor<String> {
 
     private int indentLevel = 0;
@@ -53,8 +54,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
         // Body
         indentLevel++;
         for (ASTNode stmt : node.getBody()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -118,8 +120,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
 
         indentLevel++;
         for (ASTNode stmt : node.getThenBlock()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -133,8 +136,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
 
             indentLevel++;
             for (ASTNode stmt : node.getElseBlock()) {
-                sb.append(stmt.accept(this));
-                if (!stmt.accept(this).trim().endsWith("}")) {
+                String compiled = stmt.accept(this);
+                sb.append(compiled);
+                if (!compiled.trim().endsWith("}")) {
                     sb.append(";");
                 }
                 sb.append("\n");
@@ -286,8 +290,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
         // Body
         indentLevel++;
         for (ASTNode stmt : node.getBody()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -325,8 +330,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
 
         indentLevel++;
         for (ASTNode stmt : node.getTryBlock()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -339,8 +345,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
 
         indentLevel++;
         for (ASTNode stmt : node.getCatchBlock()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -426,8 +433,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
 
             indentLevel++;
             for (ASTNode stmt : caseNode.getBody()) {
-                sb.append(stmt.accept(this));
-                if (!stmt.accept(this).trim().endsWith("}")) {
+                String compiled = stmt.accept(this);
+                sb.append(compiled);
+                if (!compiled.trim().endsWith("}")) {
                     sb.append(";");
                 }
                 sb.append("\n");
@@ -582,8 +590,9 @@ public class JavaScriptCompiler implements ASTVisitor<String> {
             }
 
             for (ASTNode stmt : constructor.getBody()) {
-                sb.append(stmt.accept(this));
-                if (!stmt.accept(this).trim().endsWith("}")) {
+                String compiled = stmt.accept(this);
+                sb.append(compiled);
+                if (!compiled.trim().endsWith("}")) {
                     sb.append(";");
                 }
                 sb.append("\n");

@@ -5,8 +5,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Compiler from Y Language to Python
+ * Note: This class is NOT a singleton. Create a new instance for each compilation
+ * to ensure thread safety.
  */
-@Component
 public class PythonCompiler implements ASTVisitor<String> {
 
     private int indentLevel = 0;

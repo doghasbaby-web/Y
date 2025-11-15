@@ -181,8 +181,9 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
 
         indentLevel++;
         for (ASTNode stmt : node.getBody()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -204,8 +205,9 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
 
         indentLevel++;
         for (ASTNode stmt : node.getBody()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");
@@ -578,8 +580,9 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
 
         indentLevel++;
         for (ASTNode stmt : node.getBody()) {
-            sb.append(stmt.accept(this));
-            if (!stmt.accept(this).trim().endsWith("}")) {
+            String compiled = stmt.accept(this);
+            sb.append(compiled);
+            if (!compiled.trim().endsWith("}")) {
                 sb.append(";");
             }
             sb.append("\n");

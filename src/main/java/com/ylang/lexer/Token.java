@@ -23,6 +23,13 @@ public class Token {
         this.column = 0;
     }
 
+    public Token(TokenType type, String value, int line) {
+        this.type = type;
+        this.value = value;
+        this.line = line;
+        this.column = 0;
+    }
+
     @Override
     public String toString() {
         return String.format("Token(%s, '%s', %d:%d)", type, value, line, column);

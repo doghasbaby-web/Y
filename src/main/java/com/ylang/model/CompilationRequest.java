@@ -22,6 +22,10 @@ public class CompilationRequest {
 
     public enum TargetLanguage {
         TYPESCRIPT,
-        RUST
+        RUST,
+        PYTHON,
+        JAVASCRIPT,
+        JAVA,
+        C
     }
 }

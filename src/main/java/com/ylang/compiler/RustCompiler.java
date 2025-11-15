@@ -451,6 +451,283 @@ public class RustCompiler implements ASTVisitor<String> {
         return sb.toString();
     }
 
+    @Override
+    public String visitEnumDeclaration(EnumDeclarationNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        // Add derives if present in yummy annotation
+        if (node.getYummyAnnotation() != null && node.getYummyAnnotation().contains("derive")) {
+            sb.append(indent()).append("#[derive(Debug, Clone)]\n");
+        }
+
+        sb.append(indent()).append("enum ").append(node.getName()).append(" {\n");
+
+        indentLevel++;
+        for (EnumVariantNode variant : node.getVariants()) {
+            sb.append(indent()).append(variant.getName());
+            if (!variant.getFields().isEmpty()) {
+                sb.append(" {");
+                for (int i = 0; i < variant.getFields().size(); i++) {
+                    FieldNode field = variant.getFields().get(i);
+                    sb.append("\n").append(INDENT.repeat(indentLevel + 1));
+                    sb.append(field.getName()).append(": ").append(mapType(field.getType()));
+                    sb.append(",");
+                }
+                sb.append("\n").append(indent()).append("}");
+            }
+            sb.append(",\n");
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitTraitDeclaration(TraitDeclarationNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(indent()).append("trait ").append(node.getName()).append(" {\n");
+
+        indentLevel++;
+        for (MethodSignatureNode method : node.getMethods()) {
+            sb.append(indent()).append("fn ").append(method.getName()).append("(");
+            for (int i = 0; i < method.getParameters().size(); i++) {
+                ParameterNode param = method.getParameters().get(i);
+                sb.append(param.getName()).append(": ").append(mapType(param.getType()));
+                if (i < method.getParameters().size() - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append(")");
+            if (method.getReturnType() != null && !method.getReturnType().getName().equals("nothing")) {
+                sb.append(" -> ").append(mapType(method.getReturnType()));
+            }
+            sb.append(";\n");
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitMatch(MatchNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(indent()).append("match ");
+        sb.append(node.getExpression().accept(this));
+        sb.append(" {\n");
+
+        indentLevel++;
+        for (CaseNode caseNode : node.getCases()) {
+            if (caseNode.isDefault()) {
+                sb.append(indent()).append("_ => {\n");
+            } else {
+                sb.append(indent());
+                sb.append(caseNode.getPattern().accept(this));
+                sb.append(" => {\n");
+            }
+
+            indentLevel++;
+            for (ASTNode stmt : caseNode.getBody()) {
+                sb.append(stmt.accept(this));
+                if (!stmt.accept(this).trim().endsWith("}")) {
+                    sb.append(";");
+                }
+                sb.append("\n");
+            }
+            indentLevel--;
+
+            sb.append(indent()).append("}\n");
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitModule(ModuleNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(indent()).append("mod ").append(node.getName()).append(" {\n");
+
+        indentLevel++;
+        for (ASTNode stmt : node.getStatements()) {
+            sb.append(stmt.accept(this));
+            sb.append("\n");
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitImport(ImportNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(indent()).append("use ");
+
+        sb.append(node.getModulePath());
+
+        if (node.isWildcard()) {
+            sb.append("::*");
+        } else if (!node.getItems().isEmpty()) {
+            sb.append("::{");
+            for (int i = 0; i < node.getItems().size(); i++) {
+                sb.append(node.getItems().get(i));
+                if (i < node.getItems().size() - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append("}");
+        }
+
+        if (node.getAlias() != null) {
+            sb.append(" as ").append(node.getAlias());
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitExport(ExportNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(indent()).append("pub ");
+
+        if (node.getDeclaration() != null) {
+            sb.append(node.getDeclaration().accept(this));
+        } else if (!node.getItems().isEmpty()) {
+            sb.append("use {");
+            for (int i = 0; i < node.getItems().size(); i++) {
+                sb.append(node.getItems().get(i));
+                if (i < node.getItems().size() - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append("}");
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitTypeAlias(TypeAliasNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(indent()).append("type ").append(node.getName());
+        sb.append(" = ").append(mapType(node.getAliasedType()));
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitClosure(ClosureNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("|");
+        for (int i = 0; i < node.getParameters().size(); i++) {
+            ParameterNode param = node.getParameters().get(i);
+            sb.append(param.getName());
+            if (param.getType() != null) {
+                sb.append(": ").append(mapType(param.getType()));
+            }
+            if (i < node.getParameters().size() - 1) {
+                sb.append(", ");
+            }
+        }
+        sb.append("|");
+
+        if (node.getReturnType() != null) {
+            sb.append(" -> ").append(mapType(node.getReturnType()));
+        }
+
+        sb.append(" {\n");
+
+        indentLevel++;
+        for (ASTNode stmt : node.getBody()) {
+            sb.append(stmt.accept(this));
+            if (!stmt.accept(this).trim().endsWith("}")) {
+                sb.append(";");
+            }
+            sb.append("\n");
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        return sb.toString();
+    }
+
+    @Override
+    public String visitClassDeclaration(ClassDeclarationNode node) {
+        // Rust doesn't have classes, convert to struct + impl block
+        StringBuilder sb = new StringBuilder();
+
+        // Add derives if present
+        if (node.getYummyAnnotation() != null && node.getYummyAnnotation().contains("derive")) {
+            sb.append(indent()).append("#[derive(Debug, Clone)]\n");
+        }
+
+        sb.append(indent()).append("struct ").append(node.getName()).append(" {\n");
+
+        indentLevel++;
+        for (FieldNode field : node.getFields()) {
+            sb.append(indent()).append(field.getName()).append(": ");
+            sb.append(mapType(field.getType())).append(",\n");
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}\n\n");
+
+        // Generate impl block for methods
+        sb.append(indent()).append("impl ").append(node.getName()).append(" {\n");
+
+        indentLevel++;
+
+        // Constructor (convert to new() method)
+        if (node.getConstructor() != null) {
+            MethodDeclarationNode constructor = node.getConstructor();
+            sb.append(indent()).append("fn new(");
+            for (int i = 0; i < constructor.getParameters().size(); i++) {
+                ParameterNode param = constructor.getParameters().get(i);
+                sb.append(param.getName()).append(": ").append(mapType(param.getType()));
+                if (i < constructor.getParameters().size() - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append(") -> Self {\n");
+            indentLevel++;
+            for (ASTNode stmt : constructor.getBody()) {
+                sb.append(stmt.accept(this));
+                if (!stmt.accept(this).trim().endsWith("}")) {
+                    sb.append(";");
+                }
+                sb.append("\n");
+            }
+            indentLevel--;
+            sb.append(indent()).append("}\n\n");
+        }
+
+        // Methods
+        for (MethodDeclarationNode method : node.getMethods()) {
+            sb.append(method.accept(this)).append("\n\n");
+        }
+
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        return sb.toString();
+    }
+
     // Helper methods
 
     private String mapType(TypeNode type) {

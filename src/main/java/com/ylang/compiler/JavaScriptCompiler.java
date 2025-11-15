@@ -4,10 +4,10 @@ import com.ylang.ast.*;
 import org.springframework.stereotype.Component;
 
 /**
- * Compiler from Y Language to TypeScript
+ * Compiler from Y Language to JavaScript (ES6+)
  */
 @Component
-public class TypeScriptCompiler implements ASTVisitor<String> {
+public class JavaScriptCompiler implements ASTVisitor<String> {
 
     private int indentLevel = 0;
     private static final String INDENT = "  ";
@@ -41,29 +41,14 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
         // Parameters
         for (int i = 0; i < node.getParameters().size(); i++) {
             ParameterNode param = node.getParameters().get(i);
-            sb.append(param.getName()).append(": ");
-            sb.append(mapType(param.getType()));
+            sb.append(param.getName());
 
             if (i < node.getParameters().size() - 1) {
                 sb.append(", ");
             }
         }
 
-        sb.append(")");
-
-        // Return type
-        if (node.getReturnType() != null) {
-            sb.append(": ");
-            if (node.isAsync()) {
-                sb.append("Promise<");
-                sb.append(mapType(node.getReturnType()));
-                sb.append(">");
-            } else {
-                sb.append(mapType(node.getReturnType()));
-            }
-        }
-
-        sb.append(" {\n");
+        sb.append(") {\n");
 
         // Body
         indentLevel++;
@@ -83,20 +68,21 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
 
     @Override
     public String visitStructDeclaration(StructDeclarationNode node) {
+        // JavaScript doesn't have interfaces, but we can use JSDoc comments
         StringBuilder sb = new StringBuilder();
 
-        sb.append(indent()).append("interface ").append(node.getName()).append(" {\n");
+        sb.append(indent()).append("/**\n");
+        sb.append(indent()).append(" * @typedef {Object} ").append(node.getName()).append("\n");
 
-        indentLevel++;
         for (FieldNode field : node.getFields()) {
-            sb.append(indent());
-            sb.append(field.getName()).append(": ");
+            sb.append(indent()).append(" * @property {");
             sb.append(mapType(field.getType()));
-            sb.append(";\n");
+            sb.append("} ");
+            sb.append(field.getName());
+            sb.append("\n");
         }
-        indentLevel--;
 
-        sb.append(indent()).append("}");
+        sb.append(indent()).append(" */");
 
         return sb.toString();
     }
@@ -113,10 +99,6 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
         }
 
         sb.append(node.getName());
-
-        if (node.getType() != null) {
-            sb.append(": ").append(mapType(node.getType()));
-        }
 
         if (node.getInitializer() != null) {
             sb.append(" = ");
@@ -248,7 +230,14 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
             sb.append("await ");
         }
 
-        sb.append(node.getFunctionName()).append("(");
+        // Handle console.log for print
+        if (node.getFunctionName().equalsIgnoreCase("print")) {
+            sb.append("console.log");
+        } else {
+            sb.append(node.getFunctionName());
+        }
+
+        sb.append("(");
 
         for (int i = 0; i < node.getArguments().size(); i++) {
             sb.append(node.getArguments().get(i).accept(this));
@@ -285,23 +274,14 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
         // Parameters
         for (int i = 0; i < node.getParameters().size(); i++) {
             ParameterNode param = node.getParameters().get(i);
-            sb.append(param.getName()).append(": ");
-            sb.append(mapType(param.getType()));
+            sb.append(param.getName());
 
             if (i < node.getParameters().size() - 1) {
                 sb.append(", ");
             }
         }
 
-        sb.append(")");
-
-        // Return type
-        if (node.getReturnType() != null) {
-            sb.append(": ");
-            sb.append(mapType(node.getReturnType()));
-        }
-
-        sb.append(" {\n");
+        sb.append(") {\n");
 
         // Body
         indentLevel++;
@@ -388,45 +368,40 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
     public String visitEnumDeclaration(EnumDeclarationNode node) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(indent()).append("enum ").append(node.getName()).append(" {\n");
+        sb.append(indent()).append("const ").append(node.getName()).append(" = Object.freeze({\n");
 
         indentLevel++;
-        for (int i = 0; i < node.getVariants().size(); i++) {
-            EnumVariantNode variant = node.getVariants().get(i);
-            sb.append(indent()).append(variant.getName());
-            if (i < node.getVariants().size() - 1) {
-                sb.append(",");
-            }
-            sb.append("\n");
+        for (EnumVariantNode variant : node.getVariants()) {
+            sb.append(indent()).append(variant.getName()).append(": \"").append(variant.getName()).append("\",\n");
         }
         indentLevel--;
 
-        sb.append(indent()).append("}");
+        sb.append(indent()).append("})");
 
         return sb.toString();
     }
 
     @Override
     public String visitTraitDeclaration(TraitDeclarationNode node) {
+        // JavaScript doesn't have interfaces, use JSDoc
         StringBuilder sb = new StringBuilder();
 
-        sb.append(indent()).append("interface ").append(node.getName()).append(" {\n");
+        sb.append(indent()).append("/**\n");
+        sb.append(indent()).append(" * @interface ").append(node.getName()).append("\n");
 
-        indentLevel++;
         for (MethodSignatureNode method : node.getMethods()) {
-            sb.append(indent()).append(method.getName()).append("(");
+            sb.append(indent()).append(" * @method ").append(method.getName()).append("(");
             for (int i = 0; i < method.getParameters().size(); i++) {
                 ParameterNode param = method.getParameters().get(i);
-                sb.append(param.getName()).append(": ").append(mapType(param.getType()));
+                sb.append(param.getName());
                 if (i < method.getParameters().size() - 1) {
                     sb.append(", ");
                 }
             }
-            sb.append("): ").append(mapType(method.getReturnType())).append(";\n");
+            sb.append(")\n");
         }
-        indentLevel--;
 
-        sb.append(indent()).append("}");
+        sb.append(indent()).append(" */");
 
         return sb.toString();
     }
@@ -471,16 +446,12 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
     public String visitModule(ModuleNode node) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append(indent()).append("namespace ").append(node.getName()).append(" {\n");
+        sb.append("// Module: ").append(node.getName()).append("\n\n");
 
-        indentLevel++;
         for (ASTNode stmt : node.getStatements()) {
             sb.append(stmt.accept(this));
             sb.append("\n");
         }
-        indentLevel--;
-
-        sb.append(indent()).append("}");
 
         return sb.toString();
     }
@@ -537,10 +508,13 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
 
     @Override
     public String visitTypeAlias(TypeAliasNode node) {
+        // JavaScript doesn't have type aliases, use JSDoc
         StringBuilder sb = new StringBuilder();
 
-        sb.append(indent()).append("type ").append(node.getName());
-        sb.append(" = ").append(mapType(node.getAliasedType()));
+        sb.append(indent()).append("/**\n");
+        sb.append(indent()).append(" * @typedef {").append(mapType(node.getAliasedType())).append("} ");
+        sb.append(node.getName()).append("\n");
+        sb.append(indent()).append(" */");
 
         return sb.toString();
     }
@@ -553,20 +527,11 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
         for (int i = 0; i < node.getParameters().size(); i++) {
             ParameterNode param = node.getParameters().get(i);
             sb.append(param.getName());
-            if (param.getType() != null) {
-                sb.append(": ").append(mapType(param.getType()));
-            }
             if (i < node.getParameters().size() - 1) {
                 sb.append(", ");
             }
         }
-        sb.append(")");
-
-        if (node.getReturnType() != null) {
-            sb.append(": ").append(mapType(node.getReturnType()));
-        }
-
-        sb.append(" => {\n");
+        sb.append(") => {\n");
 
         indentLevel++;
         for (ASTNode stmt : node.getBody()) {
@@ -593,39 +558,29 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
             sb.append(" extends ").append(node.getExtendsClass());
         }
 
-        if (!node.getImplementsInterfaces().isEmpty()) {
-            sb.append(" implements ");
-            for (int i = 0; i < node.getImplementsInterfaces().size(); i++) {
-                sb.append(node.getImplementsInterfaces().get(i));
-                if (i < node.getImplementsInterfaces().size() - 1) {
-                    sb.append(", ");
-                }
-            }
-        }
-
         sb.append(" {\n");
 
         indentLevel++;
 
-        // Fields
-        for (FieldNode field : node.getFields()) {
-            sb.append(indent()).append(field.getName()).append(": ");
-            sb.append(mapType(field.getType())).append(";\n");
-        }
-
         // Constructor
         if (node.getConstructor() != null) {
-            sb.append("\n").append(indent()).append("constructor(");
             MethodDeclarationNode constructor = node.getConstructor();
+            sb.append(indent()).append("constructor(");
             for (int i = 0; i < constructor.getParameters().size(); i++) {
                 ParameterNode param = constructor.getParameters().get(i);
-                sb.append(param.getName()).append(": ").append(mapType(param.getType()));
+                sb.append(param.getName());
                 if (i < constructor.getParameters().size() - 1) {
                     sb.append(", ");
                 }
             }
             sb.append(") {\n");
             indentLevel++;
+
+            // Initialize fields
+            for (FieldNode field : node.getFields()) {
+                sb.append(indent()).append("this.").append(field.getName()).append(";\n");
+            }
+
             for (ASTNode stmt : constructor.getBody()) {
                 sb.append(stmt.accept(this));
                 if (!stmt.accept(this).trim().endsWith("}")) {
@@ -634,12 +589,12 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
                 sb.append("\n");
             }
             indentLevel--;
-            sb.append(indent()).append("}\n");
+            sb.append(indent()).append("}\n\n");
         }
 
         // Methods
         for (MethodDeclarationNode method : node.getMethods()) {
-            sb.append("\n").append(method.accept(this)).append("\n");
+            sb.append(method.accept(this)).append("\n\n");
         }
 
         indentLevel--;
@@ -656,6 +611,7 @@ public class TypeScriptCompiler implements ASTVisitor<String> {
             return "void";
         }
 
+        // JavaScript doesn't have strict types, but for JSDoc:
         String baseType = switch (type.getName().toLowerCase()) {
             case "number" -> "number";
             case "text" -> "string";

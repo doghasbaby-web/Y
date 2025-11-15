@@ -1,8 +1,7 @@
 package com.ylang.service;
 
 import com.ylang.ast.ProgramNode;
-import com.ylang.compiler.RustCompiler;
-import com.ylang.compiler.TypeScriptCompiler;
+import com.ylang.compiler.*;
 import com.ylang.lexer.Lexer;
 import com.ylang.lexer.Token;
 import com.ylang.model.CompilationRequest;
@@ -26,6 +25,8 @@ public class CompilationService {
     private final Parser parser;
     private final TypeScriptCompiler typeScriptCompiler;
     private final RustCompiler rustCompiler;
+    private final PythonCompiler pythonCompiler;
+    private final JavaScriptCompiler javaScriptCompiler;
 
     /**
      * Compile Y language source code to target language
@@ -52,6 +53,15 @@ public class CompilationService {
                 case RUST:
                     compiledCode = rustCompiler.compile(ast);
                     break;
+                case PYTHON:
+                    compiledCode = pythonCompiler.compile(ast);
+                    break;
+                case JAVASCRIPT:
+                    compiledCode = javaScriptCompiler.compile(ast);
+                    break;
+                case JAVA:
+                case C:
+                    throw new UnsupportedOperationException("Compiler for " + request.getTargetLanguage() + " is not yet implemented");
                 default:
                     throw new IllegalArgumentException("Unsupported target language: " + request.getTargetLanguage());
             }
@@ -84,6 +94,26 @@ public class CompilationService {
         CompilationRequest request = new CompilationRequest();
         request.setSourceCode(sourceCode);
         request.setTargetLanguage(CompilationRequest.TargetLanguage.RUST);
+        return compile(request);
+    }
+
+    /**
+     * Compile Y language to Python
+     */
+    public CompilationResponse compileToPython(String sourceCode) {
+        CompilationRequest request = new CompilationRequest();
+        request.setSourceCode(sourceCode);
+        request.setTargetLanguage(CompilationRequest.TargetLanguage.PYTHON);
+        return compile(request);
+    }
+
+    /**
+     * Compile Y language to JavaScript
+     */
+    public CompilationResponse compileToJavaScript(String sourceCode) {
+        CompilationRequest request = new CompilationRequest();
+        request.setSourceCode(sourceCode);
+        request.setTargetLanguage(CompilationRequest.TargetLanguage.JAVASCRIPT);
         return compile(request);
     }
 }
